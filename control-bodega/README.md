@@ -1,70 +1,60 @@
-# Getting Started with Create React App
+# Sistema de Gestión de Inventario WMS (Telco & ISP) 📡
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Firebase](https://img.shields.io/badge/Firebase-039BE5?style=for-the-badge&logo=Firebase&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-## Available Scripts
+Aplicación Web Progresiva (PWA) desarrollada para la gestión logística integral de una empresa proveedora de internet (ISP). El sistema soluciona la pérdida de trazabilidad en materiales de ferretería y activos fijos críticos.
 
-In the project directory, you can run:
+## 🚀 Funcionalidades Clave
 
-### `npm start`
+### 🛠️ Módulo de Ferretería (Consumibles)
+- **Sistema de "Carrito de Compras":** Permite a los bodegueros seleccionar múltiples ítems (cables, conectores) y procesar un retiro masivo asignado a un técnico.
+- **Ingreso Inteligente:** Detección automática de stock existente para sumar cantidades o crear nuevos ítems en tiempo real.
+- **Control de Origen:** Registro obligatorio de facturas o proveedores en los ingresos.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 📡 Módulo de Antenas (Activos Fijos)
+- **Trazabilidad Unitaria:** Seguimiento individual por **Número de Serie** y **Dirección MAC**.
+- **Ciclo de Vida de Activos:** 1. *Ingreso a Bodega*
+  2. *Asignación a Técnico* (Salida)
+  3. *Recuperación/Reingreso* (Retorno de material de clientes).
+- **Estado en Tiempo Real:** Visualización inmediata de qué técnico tiene qué equipo específico.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 📊 Dashboard y Bitácora
+- **Alertas de Stock Crítico:** Semáforos visuales para reabastecimiento.
+- **Reportes Diarios:** Vista tipo calendario para auditar movimientos por día, agrupados por técnico responsable.
+- **Buscador Global:** Filtrado instantáneo de todo el inventario.
 
-### `npm test`
+### 📱 Tecnología y UX
+- **Escáner Integrado:** Uso de la cámara del dispositivo móvil para leer códigos de barras/QR (Librería `html5-qrcode`).
+- **PWA Ready:** Diseño *Mobile-First* optimizado para uso en terreno y tablets.
+- **Serverless:** Backend gestionado totalmente en Firebase (Firestore + Auth).
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🔧 Instalación y Despliegue Local
 
-### `npm run build`
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone [https://github.com/TU_USUARIO/TU_REPOSITORIO.git](https://github.com/TU_USUARIO/TU_REPOSITORIO.git)
+    cd TU_REPOSITORIO
+    ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3.  **Configurar Variables de Entorno:**
+    Crea un archivo `.env` en la raíz del proyecto con tus credenciales de Firebase:
+    ```env
+    REACT_APP_FIREBASE_API_KEY=tu_api_key
+    REACT_APP_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
+    # ... resto de credenciales
+    ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4.  **Ejecutar:**
+    ```bash
+    npm start
+    ```
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 📄 Licencia
+Proyecto desarrollado para portafolio profesional y gestión privada de inventario.
