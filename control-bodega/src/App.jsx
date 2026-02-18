@@ -5,7 +5,7 @@ import {
   X, CheckCircle, Users, Package, Search, Box, 
   FileText, Upload, Download, History, Edit, 
   FolderOpen, Lock, Camera, LogOut, ShieldCheck, RotateCcw, Menu,
-  Hammer, Wifi, Plus, Minus
+  Hammer, Wifi, Plus, Minus, Warehouse, Archive
 } from 'lucide-react';
 import { Html5QrcodeScanner } from "html5-qrcode";
 
@@ -50,6 +50,7 @@ const Button = ({ onClick, children, variant = "primary", className = "", disabl
     warning: "bg-amber-500 text-white hover:bg-amber-600 disabled:bg-amber-300 disabled:cursor-not-allowed",
     outline: "border border-gray-300 text-gray-700 hover:bg-gray-50",
     ghost: "text-gray-600 hover:bg-gray-100",
+    storage: "bg-purple-600 text-white hover:bg-purple-700 disabled:bg-purple-300"
   };
   return <button type={type} title={title} onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className}`}>{children}</button>;
 };
@@ -74,7 +75,7 @@ const Notification = ({ message, onClose }) => {
   );
 };
 
-// --- LOGIN ---
+// --- LOGIN CON LOGO TELCONOR ---
 const LoginView = () => {
     const [error, setError] = useState(null);
     const handleGoogleLogin = async () => {
@@ -92,8 +93,17 @@ const LoginView = () => {
     return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
-                <div className="mb-6 flex justify-center"><div className="bg-blue-100 p-4 rounded-full"><Database className="w-12 h-12 text-blue-600" /></div></div>
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">Bodega Telconor</h1>
+                {/* LOGO TELCONOR AQUI */}
+                <div className="mb-8 flex justify-center">
+                    <img 
+                        src="/logo-telconor.png" 
+                        alt="Telconor" 
+                        className="h-20 object-contain" 
+                        onError={(e) => {e.target.style.display='none';}} // Si falla, se oculta
+                    />
+                </div>
+                
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">Sistema de Bodega</h1>
                 <p className="text-gray-500 mb-8">Acceso exclusivo para personal autorizado</p>
                 {error && (<div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm font-bold flex items-center gap-2 justify-center"><AlertTriangle className="w-4 h-4"/> {error}</div>)}
                 <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-lg transition-all shadow-sm hover:shadow-md">
@@ -122,7 +132,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
   );
 };
 
-// --- MODAL CANTIDAD ---
+// --- MODAL CANTIDAD (INGRESOS/SALIDAS) ---
 const QuantityModal = ({ product, type, currentCartQty, onClose, onConfirm }) => {
   const [qty, setQty] = useState(1);
   const inputRef = useRef(null);
@@ -142,7 +152,13 @@ const QuantityModal = ({ product, type, currentCartQty, onClose, onConfirm }) =>
           <button onClick={onClose}><X className="w-6 h-6"/></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="text-center"><h4 className="text-xl font-bold text-gray-800">{product.name}</h4><p className="text-sm text-gray-500 font-mono">{product.sku}</p></div>
+          <div className="text-center">
+            <h4 className="text-xl font-bold text-gray-800">{product.name}</h4>
+            <p className="text-sm text-gray-500 font-mono">{product.sku}</p>
+            <span className={`text-xs px-2 py-1 rounded-full ${product.warehouse === 'almacenamiento' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                {product.warehouse === 'almacenamiento' ? 'Almacenamiento' : 'Principal'}
+            </span>
+          </div>
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center"><p className="text-sm text-gray-500 uppercase tracking-wide">Stock Actual</p><p className={`text-3xl font-bold ${product.stock === 0 ? 'text-red-500' : 'text-gray-800'}`}>{product.stock}</p></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
             <input ref={inputRef} type="number" min="1" max={isAddingStock ? undefined : maxStock} className={`w-full text-center text-4xl p-4 border-2 rounded-lg outline-none ${isStockError ? 'border-red-500 bg-red-50 text-red-900' : 'border-blue-500 focus:ring-4 focus:ring-blue-100'}`} value={qty} onChange={(e) => setQty(e.target.value)} />
@@ -155,34 +171,148 @@ const QuantityModal = ({ product, type, currentCartQty, onClose, onConfirm }) =>
   );
 };
 
+// --- MODAL EDICIÓN PRODUCTOS (INVENTARIO) ---
+const EditProductModal = ({ product, setProduct, onSave, onClose }) => {
+    if (!product) return null;
+  
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+          <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
+            <h3 className="font-bold">Editar Producto</h3>
+            <button onClick={onClose}><X className="w-5 h-5"/></button>
+          </div>
+          <form onSubmit={onSave} className="p-4 space-y-3">
+            <Input 
+              label="Nombre Producto" 
+              value={product.name} 
+              onChange={e => setProduct({...product, name: e.target.value})} 
+            />
+            <Input 
+              label="SKU / Código" 
+              value={product.sku} 
+              onChange={e => setProduct({...product, sku: e.target.value})} 
+            />
+             {/* Selector de Bodega */}
+             <div className="mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bodega / Ubicación</label>
+                <select 
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={product.warehouse || 'principal'}
+                    onChange={e => setProduct({...product, warehouse: e.target.value})}
+                >
+                    <option value="principal">Bodega Principal</option>
+                    <option value="almacenamiento">Bodega Almacenamiento (Huesera/Reserva)</option>
+                </select>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Input 
+                type="number" min="0" label="Stock" className="bg-blue-50" 
+                value={product.stock} 
+                onChange={e => setProduct({...product, stock: e.target.value})} 
+              />
+              <Input 
+                type="number" min="0" label="Mínimo" 
+                value={product.min} 
+                onChange={e => setProduct({...product, min: e.target.value})} 
+              />
+              <Input 
+                type="number" min="0" label="Crítico" 
+                value={product.crit} 
+                onChange={e => setProduct({...product, crit: e.target.value})} 
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
+              <Button type="submit" variant="primary" className="flex-1">Guardar</Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+};
+
+// --- MODAL EDICIÓN FERRETERÍA ---
+const EditHardwareModal = ({ item, setItem, onSave, onClose }) => {
+    if (!item) return null;
+  
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[90] p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="p-4 bg-amber-600 text-white flex justify-between items-center">
+            <h3 className="font-bold">Editar Material</h3>
+            <button onClick={onClose}><X className="w-5 h-5"/></button>
+          </div>
+          <form onSubmit={onSave} className="p-4 space-y-4">
+            <Input 
+              label="Nombre del Material" 
+              value={item.name} 
+              onChange={e => setItem({...item, name: e.target.value})} 
+            />
+            <Input 
+              type="number" min="0" label="Stock Actual" 
+              value={item.stock} 
+              onChange={e => setItem({...item, stock: e.target.value})} 
+            />
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
+              <Button type="submit" variant="warning" className="flex-1">Actualizar</Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+};
+
 // --- TRANSACTION VIEW ---
 const TransactionView = ({ type, products, cart, technicians, technician, setTechnician, invoiceNumber, setInvoiceNumber, invoiceFileName, handleInvoiceFile, initiateAddToCart, removeFromCart, processTransaction, invoices, downloadPdf, incrementCartItem, decrementCartItem, onRedirectToRepo, isRestricted, showMessage }) => {
   const [scanInput, setScanInput] = useState('');
   const [filterText, setFilterText] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [activeWarehouse, setActiveWarehouse] = useState('principal'); 
+  
   const isIngreso = type === 'in';
   const isDevolucion = type === 'return';
   const theme = isIngreso ? { icon: <ArrowDownToLine className="text-green-600"/>, btn: 'success', title: 'Ingreso', bg: 'bg-green-50' } : isDevolucion ? { icon: <RotateCcw className="text-amber-500"/>, btn: 'warning', title: 'Devolución', bg: 'bg-amber-50' } : { icon: <ArrowUpFromLine className="text-blue-600"/>, btn: 'primary', title: 'Salida', bg: 'bg-blue-50' };
 
+  // Filtrar productos por bodega seleccionada Y texto
   const filteredProducts = useMemo(() => products.filter(p => {
+      const pWarehouse = p.warehouse || 'principal'; 
+      const matchesWarehouse = pWarehouse === activeWarehouse;
       const name = p.name ? p.name.toLowerCase() : '';
       const sku = p.sku ? p.sku.toLowerCase() : '';
       const filter = filterText.toLowerCase();
-      return name.includes(filter) || sku.includes(filter);
-  }), [products, filterText]);
+      return matchesWarehouse && (name.includes(filter) || sku.includes(filter));
+  }), [products, filterText, activeWarehouse]);
     
   const handleScanSubmit = () => { 
       if (!scanInput) return;
       const exactMatch = products.find(p => (p.sku && p.sku.toLowerCase() === scanInput.toLowerCase()) || (p.name && p.name.toLowerCase() === scanInput.toLowerCase()));
-      if (exactMatch) initiateAddToCart(exactMatch.id);
-      else if (filteredProducts.length > 0) initiateAddToCart(filteredProducts[0].id);
+      
+      if (exactMatch) {
+          if ((exactMatch.warehouse || 'principal') !== activeWarehouse) {
+              alert(`⚠️ Este producto está en la bodega: ${exactMatch.warehouse || 'principal'}. Cambia de pestaña para operarlo.`);
+              return;
+          }
+          initiateAddToCart(exactMatch.id);
+      } else if (filteredProducts.length > 0) {
+          initiateAddToCart(filteredProducts[0].id);
+      }
       setScanInput(''); setFilterText(''); 
   };
 
   const handleCameraScan = (decodedText) => {
     setShowScanner(false); setScanInput(''); setFilterText('');
     const exactMatch = products.find(p => (p.sku && p.sku.toLowerCase() === decodedText.toLowerCase()) || (p.name && p.name.toLowerCase() === decodedText.toLowerCase()));
-    if (exactMatch) { showMessage(`📸 Producto: ${exactMatch.name}`); initiateAddToCart(exactMatch.id); } 
+    
+    if (exactMatch) { 
+        if ((exactMatch.warehouse || 'principal') !== activeWarehouse) {
+            alert(`⚠️ Producto encontrado en bodega: ${exactMatch.warehouse || 'principal'}. Por favor selecciona esa bodega arriba.`);
+            return;
+        }
+        showMessage(`📸 Producto: ${exactMatch.name}`); 
+        initiateAddToCart(exactMatch.id); 
+    } 
     else alert(`⚠️ Producto "${decodedText}" no encontrado.`);
   };
 
@@ -209,6 +339,16 @@ const TransactionView = ({ type, products, cart, technicians, technician, setTec
       <div className="flex flex-col gap-4 h-auto lg:h-full overflow-visible lg:overflow-hidden order-2 lg:order-1">
         <Card className="flex-shrink-0">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">{theme.icon} {theme.title} {isRestricted && <span className="ml-auto text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full flex items-center gap-1"><Lock className="w-3 h-3"/> Kiosco</span>}</h2>
+          
+          <div className="flex gap-2 mb-4">
+            <button onClick={() => setActiveWarehouse('principal')} className={`flex-1 py-2 rounded flex items-center justify-center gap-2 text-sm font-bold border transition-colors ${activeWarehouse === 'principal' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-300'}`}>
+                <Warehouse className="w-4 h-4"/> Principal
+            </button>
+            <button onClick={() => setActiveWarehouse('almacenamiento')} className={`flex-1 py-2 rounded flex items-center justify-center gap-2 text-sm font-bold border transition-colors ${activeWarehouse === 'almacenamiento' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-300'}`}>
+                <Archive className="w-4 h-4"/> Almacenamiento
+            </button>
+          </div>
+
           {isIngreso ? (
             <div className="mb-4 bg-green-50 p-3 rounded-lg border border-green-200 space-y-3">
                <div><label className="block text-xs font-bold text-green-800 mb-1">Nº FACTURA</label><input type="text" placeholder="Ej: 123456" className="w-full p-2 border rounded font-bold uppercase" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} /></div>
@@ -220,20 +360,19 @@ const TransactionView = ({ type, products, cart, technicians, technician, setTec
               <div className="flex gap-2"><Users className="text-gray-400 w-5 h-5 mt-2" /><select className="w-full p-2 border rounded-md bg-white font-medium" value={technician} onChange={(e) => setTechnician(e.target.value)}><option value="">-- SELECCIONAR --</option>{technicians.map(tech => (<option key={tech.id} value={tech.name}>{tech.name}</option>))}</select></div>
             </div>
           )}
-          <div className={`p-4 rounded-lg ${theme.bg} border`}><label className="block text-sm font-bold mb-2">BUSCAR PRODUCTO</label><div className="flex gap-2"><Button onClick={() => setShowScanner(true)} variant="outline" className="px-3" title="Escanear"><QrCode className="w-5 h-5"/></Button><div className="relative flex-1"><Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" /><input type="text" value={scanInput} list="product-suggestions" onChange={(e) => { setScanInput(e.target.value); setFilterText(e.target.value); }} onKeyDown={(e) => e.key === 'Enter' && handleScanSubmit()} placeholder="Nombre o SKU..." className="w-full pl-9 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"/><datalist id="product-suggestions">{products.map(p => (<option key={p.id} value={p.name}>{p.sku}</option>))}</datalist></div><Button onClick={handleScanSubmit} variant={theme.btn}><CheckCircle className="w-4 h-4" /></Button></div></div>
-          {/* Historial rápido facturas */}
+          <div className={`p-4 rounded-lg ${theme.bg} border`}><label className="block text-sm font-bold mb-2">BUSCAR PRODUCTO ({activeWarehouse === 'principal' ? 'PRINCIPAL' : 'ALMAC.'})</label><div className="flex gap-2"><Button onClick={() => setShowScanner(true)} variant="outline" className="px-3" title="Escanear"><QrCode className="w-5 h-5"/></Button><div className="relative flex-1"><Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" /><input type="text" value={scanInput} list="product-suggestions" onChange={(e) => { setScanInput(e.target.value); setFilterText(e.target.value); }} onKeyDown={(e) => e.key === 'Enter' && handleScanSubmit()} placeholder="Nombre o SKU..." className="w-full pl-9 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"/><datalist id="product-suggestions">{filteredProducts.map(p => (<option key={p.id} value={p.name}>{p.sku}</option>))}</datalist></div><Button onClick={handleScanSubmit} variant={theme.btn}><CheckCircle className="w-4 h-4" /></Button></div></div>
           {(!isIngreso || isRestricted) ? null : <InvoiceHistoryPanel />}
         </Card>
         
         <div className="flex-1 bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-[300px] h-96 lg:h-auto">
-          <div className="p-3 bg-gray-50 border-b font-bold text-gray-500 text-xs uppercase flex justify-between"><span>Catálogo</span><span>{filteredProducts.length} Items</span></div>
+          <div className="p-3 bg-gray-50 border-b font-bold text-gray-500 text-xs uppercase flex justify-between"><span>Catálogo {activeWarehouse === 'principal' ? 'Principal' : 'Almacenamiento'}</span><span>{filteredProducts.length} Items</span></div>
           <div className="flex-1 overflow-y-auto p-2 space-y-2">
             {filteredProducts.length === 0 && (<div className="h-full flex flex-col items-center justify-center text-gray-400"><Package className="w-12 h-12 opacity-20 mb-2"/><p>No se encontraron productos</p></div>)}
             {filteredProducts.map(p => { 
               const stockStatus = p.stock <= p.crit ? 'bg-red-50 border-red-200' : 'hover:bg-gray-50'; 
               return ( 
                 <div key={p.id} onClick={() => initiateAddToCart(p.id)} className={`p-3 border rounded-lg cursor-pointer transition-all flex justify-between items-center group ${stockStatus}`}>
-                  <div className="flex items-center gap-3"><div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-xs">{p.name.substring(0,2).toUpperCase()}</div><div><div className="font-bold text-gray-800 text-sm">{p.name}</div><div className="text-xs text-gray-500 font-mono">{p.sku}</div></div></div>
+                  <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded flex items-center justify-center font-bold text-xs ${p.warehouse === 'almacenamiento' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>{p.name.substring(0,2).toUpperCase()}</div><div><div className="font-bold text-gray-800 text-sm">{p.name}</div><div className="text-xs text-gray-500 font-mono">{p.sku}</div></div></div>
                   <div className="text-right"><span className={`block font-bold text-lg ${p.stock <= p.crit ? 'text-red-600' : 'text-gray-700'}`}>{p.stock}</span></div>
                 </div> 
               )
@@ -245,7 +384,7 @@ const TransactionView = ({ type, products, cart, technicians, technician, setTec
         <Card className={`flex-1 flex flex-col h-full border-l-0 lg:border-l-4 ${theme.border} ${cart.length > 0 ? 'bg-blue-50 lg:bg-white' : ''}`}>
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2 pb-4 border-b"><ShoppingCart className="w-5 h-5"/> Carrito ({cart.length})</h3>
           <div className="flex-1 overflow-y-auto mb-4 space-y-2 max-h-60 lg:max-h-full">
-            {cart.length === 0 ? (<div className="h-full flex flex-col items-center justify-center text-gray-400 py-4"><Box className="w-16 h-16 mb-4 opacity-20"/><p>Lista vacía</p><p className="text-xs">Agrega productos</p></div>) : (cart.map(item => (<div key={item.id} className="flex flex-col bg-white p-3 rounded border border-gray-200 shadow-sm"><div className="flex justify-between items-start mb-2"><div><div className="font-bold text-sm text-gray-800">{item.name}</div><div className="text-xs text-gray-500">{item.sku}</div></div><button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button></div><div className="flex justify-between items-center mt-2 bg-gray-50 p-1 rounded"><span className="text-xs font-bold text-gray-500 uppercase ml-2">Cantidad:</span><div className="flex items-center gap-3"><button onClick={() => decrementCartItem(item.id)} className="w-8 h-8 flex items-center justify-center bg-white border rounded hover:bg-gray-100 text-gray-600 font-bold">-</button><span className="font-bold text-lg w-8 text-center">{item.qty}</span><button onClick={() => incrementCartItem(item.id)} className="w-8 h-8 flex items-center justify-center bg-white border rounded hover:bg-gray-100 text-blue-600 font-bold">+</button></div></div></div>)))}
+            {cart.length === 0 ? (<div className="h-full flex flex-col items-center justify-center text-gray-400 py-4"><Box className="w-16 h-16 mb-4 opacity-20"/><p>Lista vacía</p><p className="text-xs">Agrega productos</p></div>) : (cart.map(item => (<div key={item.id} className="flex flex-col bg-white p-3 rounded border border-gray-200 shadow-sm"><div className="flex justify-between items-start mb-2"><div><div className="font-bold text-sm text-gray-800">{item.name}</div><div className="text-xs text-gray-500 flex gap-1 items-center">{item.sku} <span className={`px-1 rounded text-[10px] ${item.warehouse === 'almacenamiento' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>{item.warehouse === 'almacenamiento' ? 'ALM' : 'PRI'}</span></div></div><button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button></div><div className="flex justify-between items-center mt-2 bg-gray-50 p-1 rounded"><span className="text-xs font-bold text-gray-500 uppercase ml-2">Cantidad:</span><div className="flex items-center gap-3"><button onClick={() => decrementCartItem(item.id)} className="w-8 h-8 flex items-center justify-center bg-white border rounded hover:bg-gray-100 text-gray-600 font-bold">-</button><span className="font-bold text-lg w-8 text-center">{item.qty}</span><button onClick={() => incrementCartItem(item.id)} className="w-8 h-8 flex items-center justify-center bg-white border rounded hover:bg-gray-100 text-blue-600 font-bold">+</button></div></div></div>)))}
           </div>
           <div className="pt-4 border-t mt-auto"><Button variant={theme.btn} className="w-full py-4 text-lg shadow-lg" onClick={() => processTransaction(type)} disabled={cart.length === 0}>{isIngreso ? "GUARDAR" : (isDevolucion ? "DEVOLVER" : "CONFIRMAR")}</Button></div>
         </Card>
@@ -258,13 +397,14 @@ const TransactionView = ({ type, products, cart, technicians, technician, setTec
 const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => { 
     const [isAdding, setIsAdding] = useState(false); 
     const [editingProduct, setEditingProduct] = useState(null); 
-    const [formData, setFormData] = useState({ name: '', sku: '', min: 0, crit: 0, stock: 0 }); 
+    const [formData, setFormData] = useState({ name: '', sku: '', min: 0, crit: 0, stock: 0, warehouse: 'principal' }); 
     const [newTechName, setNewTechName] = useState('');
     const [viewInvoice, setViewInvoice] = useState(null); 
     const [invoiceSearchTerm, setInvoiceSearchTerm] = useState(''); 
     const [showScanner, setShowScanner] = useState(false);
     const [printing, setPrinting] = useState(false);
     const [productFilter, setProductFilter] = useState('all'); 
+    const [dbWarehouseFilter, setDbWarehouseFilter] = useState('all'); 
 
     const [products, setProducts] = useState([]);
     const [technicians, setTechnicians] = useState([]);
@@ -278,6 +418,8 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
     }, []);
     
     const filteredProducts = products.filter(p => {
+        const pWarehouse = p.warehouse || 'principal';
+        if (dbWarehouseFilter !== 'all' && pWarehouse !== dbWarehouseFilter) return false;
         if (productFilter === 'critical') return p.stock <= p.crit;
         if (productFilter === 'low') return p.stock <= p.min;
         return true;
@@ -288,7 +430,7 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
         if (formData.stock < 0 || formData.min < 0 || formData.crit < 0) { alert("No se permiten valores negativos"); return; }
         try { 
             await addDoc(collection(db, "products"), { ...formData, stock: parseInt(formData.stock), min: parseInt(formData.min), crit: parseInt(formData.crit) }); 
-            setFormData({ name: '', sku: '', min: 0, crit: 0, stock: 0 }); setIsAdding(false); showMessage("Producto creado exitosamente");
+            setFormData({ name: '', sku: '', min: 0, crit: 0, stock: 0, warehouse: 'principal' }); setIsAdding(false); showMessage("Producto creado exitosamente");
         } catch (e) { alert("Error: " + e.message); }
     };
 
@@ -297,7 +439,7 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
         if (editingProduct.stock < 0 || editingProduct.min < 0 || editingProduct.crit < 0) { alert("⚠️ Error: No se permiten valores negativos."); return; }
         try {
             await updateDoc(doc(db, "products", editingProduct.id), {
-                name: editingProduct.name, sku: editingProduct.sku, stock: parseInt(editingProduct.stock), min: parseInt(editingProduct.min), crit: parseInt(editingProduct.crit)
+                name: editingProduct.name, sku: editingProduct.sku, stock: parseInt(editingProduct.stock), min: parseInt(editingProduct.min), crit: parseInt(editingProduct.crit), warehouse: editingProduct.warehouse || 'principal'
             });
             setEditingProduct(null); showMessage("✅ Producto actualizado");
         } catch (e) { alert("Error: " + e.message); }
@@ -313,7 +455,7 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
     const handlePrintQRs = () => {
         setPrinting(true); const win = window.open('', '', 'height=700,width=900');
         let html = '<html><head><title>Imprimir QR</title><style>body { font-family: sans-serif; } .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px; } .card { border: 1px dashed #ccc; padding: 10px; text-align: center; } .sku { font-size: 10px; color: #555; } img { width: 100px; height: 100px; }</style></head><body><h2 style="text-align:center;">Códigos QR</h2><div class="grid">';
-        products.forEach(p => { html += `<div class="card"><img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(p.sku)}" /><br><strong>${p.name}</strong><br><span class="sku">${p.sku}</span></div>`; });
+        filteredProducts.forEach(p => { html += `<div class="card"><img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(p.sku)}" /><br><strong>${p.name}</strong><br><span class="sku">${p.sku}</span></div>`; });
         html += '</div></body></html>'; win.document.write(html); win.document.close(); setTimeout(() => { win.print(); setPrinting(false); }, 1000);
     };
     const handleAddTech = async (e) => { e.preventDefault(); if(!newTechName.trim()) return; try { await addDoc(collection(db, "technicians"), { name: newTechName }); setNewTechName(''); } catch (e) { alert("Error"); }};
@@ -327,27 +469,6 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
         if (!invoiceSearchTerm) return allInvoices;
         return allInvoices.filter(inv => inv.ref.toString().toLowerCase().includes(invoiceSearchTerm.toLowerCase()) || inv.type.toLowerCase().includes(invoiceSearchTerm.toLowerCase()));
     }, [allInvoices, invoiceSearchTerm]);
-
-    const EditProductModal = () => {
-        if (!editingProduct) return null;
-        return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
-                    <div className="p-4 bg-blue-600 text-white flex justify-between items-center"><h3 className="font-bold">Editar Producto</h3><button onClick={() => setEditingProduct(null)}><X className="w-5 h-5"/></button></div>
-                    <form onSubmit={handleUpdateProduct} className="p-4 space-y-3">
-                        <Input label="Nombre Producto" value={editingProduct.name} onChange={e => setEditingProduct({...editingProduct, name: e.target.value})} />
-                        <Input label="SKU / Código" value={editingProduct.sku} onChange={e => setEditingProduct({...editingProduct, sku: e.target.value})} />
-                        <div className="grid grid-cols-3 gap-2">
-                            <Input type="number" min="0" label="Stock" className="bg-blue-50" value={editingProduct.stock} onChange={e => setEditingProduct({...editingProduct, stock: e.target.value})} />
-                            <Input type="number" min="0" label="Mínimo" value={editingProduct.min} onChange={e => setEditingProduct({...editingProduct, min: e.target.value})} />
-                            <Input type="number" min="0" label="Crítico" value={editingProduct.crit} onChange={e => setEditingProduct({...editingProduct, crit: e.target.value})} />
-                        </div>
-                        <div className="flex gap-2 pt-2"><Button variant="outline" className="flex-1" onClick={() => setEditingProduct(null)}>Cancelar</Button><Button type="submit" variant="primary" className="flex-1">Guardar</Button></div>
-                    </form>
-                </div>
-            </div>
-        );
-    };
 
     const InvoiceDetailModal = () => {
         if (!viewInvoice) return null;
@@ -366,6 +487,14 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
     return (
       <div className="space-y-6">
         {showScanner && <BarcodeScanner onScan={handleSkuScan} onClose={() => setShowScanner(false)} />}
+        
+        <EditProductModal 
+            product={editingProduct} 
+            setProduct={setEditingProduct} 
+            onSave={handleUpdateProduct} 
+            onClose={() => setEditingProduct(null)} 
+        />
+
         <div className="flex gap-4 border-b border-gray-300 pb-2 overflow-x-auto">
           <button onClick={() => setActiveTab('products')} className={`pb-2 px-4 font-bold flex gap-2 whitespace-nowrap ${activeTab === 'products' ? 'border-b-4 border-blue-600 text-blue-600' : 'text-gray-500'}`}><Package className="w-5 h-5"/> Productos</button>
           <button onClick={() => setActiveTab('technicians')} className={`pb-2 px-4 font-bold flex gap-2 whitespace-nowrap ${activeTab === 'technicians' ? 'border-b-4 border-blue-600 text-blue-600' : 'text-gray-500'}`}><Users className="w-5 h-5"/> Técnicos</button>
@@ -374,14 +503,34 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
         
         {activeTab === 'products' && (
           <>
-            <EditProductModal />
-            <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
-                <div className="flex items-center gap-2"><h2 className="text-xl font-bold">Inventario</h2><div className="flex gap-2 ml-4"><button onClick={() => setProductFilter('all')} className={`text-xs px-3 py-1 rounded-full border transition-colors ${productFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Todos</button><button onClick={() => setProductFilter('critical')} className={`text-xs px-3 py-1 rounded-full border transition-colors flex items-center gap-1 ${productFilter === 'critical' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-500 border-red-200 hover:bg-red-50'}`}><AlertTriangle className="w-3 h-3"/> Críticos</button><button onClick={() => setProductFilter('low')} className={`text-xs px-3 py-1 rounded-full border transition-colors ${productFilter === 'low' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-yellow-600 border-yellow-200 hover:bg-yellow-50'}`}>Bajos</button></div></div>
-                <div className="flex gap-2"><Button variant="outline" onClick={handlePrintQRs} disabled={printing} title="Imprimir Etiquetas QR"><Printer className="w-4 h-4"/> Imprimir QR</Button><Button variant="outline" onClick={() => setIsAdding(!isAdding)}>{isAdding ? 'Cancelar' : 'Nuevo'}</Button></div>
+            <div className="flex flex-col xl:flex-row justify-between gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <h2 className="text-xl font-bold">Inventario</h2>
+                    <div className="flex gap-2 sm:ml-4">
+                        <select className="text-xs p-1 border rounded" value={dbWarehouseFilter} onChange={e => setDbWarehouseFilter(e.target.value)}>
+                            <option value="all">Todas las Bodegas</option>
+                            <option value="principal">Solo Principal</option>
+                            <option value="almacenamiento">Solo Almacenamiento</option>
+                        </select>
+                        <button onClick={() => setProductFilter('all')} className={`text-xs px-3 py-1 rounded-full border transition-colors ${productFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>Todos</button>
+                        <button onClick={() => setProductFilter('critical')} className={`text-xs px-3 py-1 rounded-full border transition-colors flex items-center gap-1 ${productFilter === 'critical' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-500 border-red-200 hover:bg-red-50'}`}><AlertTriangle className="w-3 h-3"/> Críticos</button>
+                    </div>
+                </div>
+                <div className="flex gap-2"><Button variant="outline" onClick={handlePrintQRs} disabled={printing} title="Imprimir Etiquetas QR"><Printer className="w-4 h-4"/> QR</Button><Button variant="outline" onClick={() => setIsAdding(!isAdding)}>{isAdding ? 'Cancelar' : 'Nuevo'}</Button></div>
             </div>
             {isAdding && (
-              <Card className="bg-gray-50">
+              <Card className="bg-gray-50 mb-4">
                 <form onSubmit={handleSubmitProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2 bg-white p-2 rounded border border-blue-100 flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="warehouse" checked={formData.warehouse === 'principal'} onChange={() => setFormData({...formData, warehouse: 'principal'})} />
+                        <span className="text-sm font-bold text-blue-700">Bodega Principal</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="warehouse" checked={formData.warehouse === 'almacenamiento'} onChange={() => setFormData({...formData, warehouse: 'almacenamiento'})} />
+                        <span className="text-sm font-bold text-purple-700">Almacenamiento (Huesera)</span>
+                    </label>
+                  </div>
                   <Input label="Nombre" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
                   <div className="mb-2"><label className="block text-sm font-medium text-gray-700 mb-1">SKU / Código</label><div className="flex gap-2"><input className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} required /><Button variant="outline" onClick={() => setShowScanner(true)} title="Escanear"><QrCode className="w-5 h-5"/></Button></div></div>
                   <div className="grid grid-cols-3 gap-2 md:col-span-2"><Input type="number" min="0" label="Stock" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} required /><Input type="number" min="0" label="Mín" value={formData.min} onChange={e => setFormData({...formData, min: e.target.value})} required /><Input type="number" min="0" label="Crit" value={formData.crit} onChange={e => setFormData({...formData, crit: e.target.value})} required /></div>
@@ -389,7 +538,7 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
                 </form>
               </Card>
             )}
-            <Card className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b"><th className="p-2">SKU</th><th className="p-2">Nombre</th><th className="p-2 text-center">Stock</th><th className="p-2 text-center">Niveles</th><th className="p-2 text-right">Acciones</th></tr></thead><tbody>{filteredProducts.map(p => (<tr key={p.id} className="border-b hover:bg-gray-50"><td className="p-2 font-mono text-xs text-gray-500">{p.sku}</td><td className="p-2 font-medium">{p.name}</td><td className="p-2 text-center font-bold text-lg">{p.stock}</td><td className="p-2 text-center text-xs text-gray-500">Min:{p.min} / Crit:{p.crit}</td><td className="p-2 text-right"><button onClick={() => setEditingProduct(p)} className="text-blue-500 hover:text-blue-700 mr-3"><Edit className="w-4 h-4 inline"/></button><button onClick={() => handleDelete('products', p.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 inline"/></button></td></tr>))}{filteredProducts.length === 0 && <tr><td colSpan="5" className="p-8 text-center text-gray-400">Sin datos</td></tr>}</tbody></table></Card>
+            <Card className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b"><th className="p-2">Bodega</th><th className="p-2">SKU</th><th className="p-2">Nombre</th><th className="p-2 text-center">Stock</th><th className="p-2 text-center">Niveles</th><th className="p-2 text-right">Acciones</th></tr></thead><tbody>{filteredProducts.map(p => (<tr key={p.id} className="border-b hover:bg-gray-50"><td className="p-2"><span className={`text-[10px] px-2 py-1 rounded font-bold ${p.warehouse === 'almacenamiento' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{p.warehouse === 'almacenamiento' ? 'ALM' : 'PRI'}</span></td><td className="p-2 font-mono text-xs text-gray-500">{p.sku}</td><td className="p-2 font-medium">{p.name}</td><td className="p-2 text-center font-bold text-lg">{p.stock}</td><td className="p-2 text-center text-xs text-gray-500">Min:{p.min} / Crit:{p.crit}</td><td className="p-2 text-right"><button onClick={() => setEditingProduct(p)} className="text-blue-500 hover:text-blue-700 mr-3"><Edit className="w-4 h-4 inline"/></button><button onClick={() => handleDelete('products', p.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 inline"/></button></td></tr>))}{filteredProducts.length === 0 && <tr><td colSpan="6" className="p-8 text-center text-gray-400">Sin datos</td></tr>}</tbody></table></Card>
           </>
         )}
         {activeTab === 'technicians' && (
@@ -420,7 +569,7 @@ const DatabaseView = ({ activeTab, setActiveTab, showMessage, user }) => {
 // --- REPORTS VIEW (BITÁCORA DIARIA) ---
 const ReportsView = ({ transactions }) => {
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]); 
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);    
+    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);     
     
     // Filtro corregido por string YYYY-MM-DD para evitar problemas de zona horaria
     const filteredTransactions = useMemo(() => {
@@ -538,11 +687,14 @@ const ReportsView = ({ transactions }) => {
 // --- HARDWARE VIEW (MÓDULO FERRETERÍA) ---
 const HardwareView = ({ technicians, showMessage }) => {
     const [items, setItems] = useState([]);
-    const [cart, setCart] = useState([]); // CARRITO DE FERRETERÍA
+    const [cart, setCart] = useState([]); 
     const [mode, setMode] = useState('out'); // 'in' (ingreso) | 'out' (retiro)
     const [selectedTech, setSelectedTech] = useState('');
-    const [comment, setComment] = useState('');
+    const [comment, setComment] = useState(''); // Esto guardará el SECTOR
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Estados para edición
+    const [editingItem, setEditingItem] = useState(null);
 
     useEffect(() => {
         const u1 = onSnapshot(collection(db, "hardware_items"), (s) => setItems(s.docs.map(d => ({id: d.id, ...d.data()}))));
@@ -570,8 +722,8 @@ const HardwareView = ({ technicians, showMessage }) => {
         }));
     };
 
+    // --- FUNCIÓN CREAR ---
     const handleCreateItem = async () => {
-        // En lugar de prompt, usamos el buscador
         if(!searchTerm.trim()) { alert("Escribe el nombre del material en el buscador primero."); return; }
         const name = searchTerm.trim();
         const exists = items.find(i => i.name.toLowerCase() === name.toLowerCase());
@@ -584,43 +736,91 @@ const HardwareView = ({ technicians, showMessage }) => {
         } catch(e) { alert("Error al crear"); }
     };
 
+    // --- FUNCIÓN BORRAR (NUEVA) ---
+    const handleDeleteItem = async (e, id) => {
+        e.stopPropagation(); // Evita que se agregue al carrito al hacer clic
+        if(window.confirm("⚠️ ¿Estás seguro de borrar este material permanentemente?")) {
+            try {
+                await deleteDoc(doc(db, "hardware_items", id));
+                showMessage("Material eliminado");
+            } catch(err) { alert("Error al borrar: " + err.message); }
+        }
+    };
+
+    // --- FUNCIÓN ACTUALIZAR (NUEVA) ---
+    const handleUpdateItem = async (e) => {
+        e.preventDefault();
+        if(!editingItem) return;
+        try {
+            await updateDoc(doc(db, "hardware_items", editingItem.id), {
+                name: editingItem.name,
+                stock: parseInt(editingItem.stock)
+            });
+            setEditingItem(null);
+            showMessage("✅ Material actualizado correctamente");
+        } catch(err) { alert("Error al actualizar: " + err.message); }
+    };
+
+    // --- PROCESAR TRANSACCIÓN (SALIDA/INGRESO) ---
     const processCart = async () => {
         if(cart.length === 0) return;
-        if(mode === 'out' && (!selectedTech || !comment)) { alert("Debes indicar Técnico y Comentario"); return; }
-        if(mode === 'in' && !comment) { alert("Debes indicar Proveedor o Factura en el comentario"); return; }
+        
+        // Validaciones estrictas
+        if(mode === 'out') {
+            if(!selectedTech) { alert("⚠️ Debes seleccionar un Técnico responsable."); return; }
+            if(!comment.trim()) { alert("⚠️ Debes indicar el SECTOR o DESTINO de los materiales."); return; }
+        }
+        if(mode === 'in' && !comment.trim()) { alert("⚠️ Debes indicar Proveedor o Factura en el comentario."); return; }
 
         try {
             const promises = cart.map(async (item) => {
                 const docRef = doc(db, "hardware_items", item.id);
-                // Validar Stock
+                
+                // 1. Validar Stock si es salida
                 if(mode === 'out' && item.stock < item.qty) throw new Error(`Stock insuficiente: ${item.name}`);
                 
+                // 2. Calcular nuevo stock
                 const newStock = mode === 'in' ? item.stock + item.qty : item.stock - item.qty;
+                
+                // 3. Actualizar Maestro de Items
                 await updateDoc(docRef, { stock: newStock });
                 
+                // 4. Guardar Historial (AQUÍ SE GUARDA EL SECTOR)
                 await addDoc(collection(db, "hardware_transactions"), {
                     itemName: item.name,
-                    type: mode,
+                    itemId: item.id,
+                    type: mode, // 'in' o 'out'
                     qty: item.qty,
                     user: mode === 'out' ? selectedTech : 'Bodega',
-                    comment: comment || '',
+                    sector: mode === 'out' ? comment : 'Bodega', // Campo específico para sector
+                    comment: comment || '', // Respaldo en comentario
                     date: new Date().toISOString()
                 });
             });
 
             await Promise.all(promises);
-            showMessage("Transacción de ferretería exitosa");
-            setCart([]); setComment(''); setSelectedTech('');
+            showMessage("Transacción de ferretería guardada");
+            setCart([]); 
+            setComment(''); 
+            if(mode ==='out') setSelectedTech('');
         } catch (e) { alert(e.message); }
     };
 
     return (
         <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-140px)]">
+            {/* Modal de Edición */}
+            <EditHardwareModal 
+                item={editingItem} 
+                setItem={setEditingItem} 
+                onSave={handleUpdateItem} 
+                onClose={() => setEditingItem(null)} 
+            />
+
             {/* IZQUIERDA: CATÁLOGO */}
             <div className="w-full md:w-1/2 flex flex-col gap-4">
                 <Card className="flex-1 flex flex-col">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold flex items-center gap-2"><Hammer className="w-5 h-5 text-amber-600"/> Catálogo</h3>
+                        <h3 className="font-bold flex items-center gap-2"><Hammer className="w-5 h-5 text-amber-600"/> Catálogo Ferretería</h3>
                     </div>
                     <div className="relative mb-2 flex gap-2">
                         <div className="relative flex-1">
@@ -635,9 +835,17 @@ const HardwareView = ({ technicians, showMessage }) => {
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-2">
                         {filteredItems.map(item => (
-                            <div key={item.id} onClick={() => addToCart(item)} className="p-3 border rounded hover:bg-gray-50 cursor-pointer flex justify-between select-none">
-                                <span className="font-medium">{item.name}</span>
-                                <span className="font-bold bg-gray-100 px-2 rounded">Stock: {item.stock}</span>
+                            <div key={item.id} onClick={() => addToCart(item)} className="p-3 border rounded hover:bg-gray-50 cursor-pointer flex justify-between items-center select-none group">
+                                <div>
+                                    <span className="font-medium block">{item.name}</span>
+                                    <span className="text-xs text-gray-400">Stock: {item.stock}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <span className="font-bold bg-gray-100 px-3 py-1 rounded text-lg">{item.stock}</span>
+                                    {/* Botones de Editar/Borrar (Solo visibles al pasar el mouse o siempre en móvil) */}
+                                    <button onClick={(e) => { e.stopPropagation(); setEditingItem(item); }} className="p-2 text-blue-400 hover:bg-blue-50 rounded"><Edit className="w-4 h-4"/></button>
+                                    <button onClick={(e) => handleDeleteItem(e, item.id)} className="p-2 text-red-400 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4"/></button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -648,26 +856,35 @@ const HardwareView = ({ technicians, showMessage }) => {
             <div className="w-full md:w-1/2 flex flex-col gap-4">
                 <Card className="h-full flex flex-col">
                     <div className="flex gap-2 mb-4 border-b pb-4">
-                        <button onClick={() => setMode('out')} className={`flex-1 py-2 rounded font-bold ${mode === 'out' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>RETIRO</button>
-                        <button onClick={() => setMode('in')} className={`flex-1 py-2 rounded font-bold ${mode === 'in' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'}`}>INGRESO</button>
+                        <button onClick={() => setMode('out')} className={`flex-1 py-2 rounded font-bold ${mode === 'out' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>RETIRO (SALIDA)</button>
+                        <button onClick={() => setMode('in')} className={`flex-1 py-2 rounded font-bold ${mode === 'in' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'}`}>INGRESO (ENTRADA)</button>
                     </div>
 
                     <div className="space-y-3 mb-4">
                         {mode === 'out' ? (
                             <>
-                                <select className="w-full p-2 border rounded" value={selectedTech} onChange={e => setSelectedTech(e.target.value)}>
-                                    <option value="">-- Seleccionar Técnico --</option>
-                                    {technicians.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-                                </select>
-                                <input className="w-full p-2 border rounded" placeholder="Comentario / Destino..." value={comment} onChange={e => setComment(e.target.value)} />
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-1">TÉCNICO RESPONSABLE</label>
+                                    <select className="w-full p-2 border rounded bg-white" value={selectedTech} onChange={e => setSelectedTech(e.target.value)}>
+                                        <option value="">-- Seleccionar --</option>
+                                        {technicians.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-600 mb-1">SECTOR / DESTINO (Obligatorio)</label>
+                                    <input className="w-full p-2 border rounded border-blue-300 bg-blue-50 focus:bg-white" placeholder="Ej: Torre A, Cliente XYZ, Mantención..." value={comment} onChange={e => setComment(e.target.value)} />
+                                </div>
                             </>
                         ) : (
-                            <input className="w-full p-2 border rounded" placeholder="Proveedor / Nº Factura / Origen..." value={comment} onChange={e => setComment(e.target.value)} />
+                            <div>
+                                <label className="block text-xs font-bold text-gray-600 mb-1">PROVEEDOR / DETALLE</label>
+                                <input className="w-full p-2 border rounded" placeholder="Proveedor / Nº Factura / Origen..." value={comment} onChange={e => setComment(e.target.value)} />
+                            </div>
                         )}
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-2 mb-4 bg-gray-50 p-2 rounded">
-                        {cart.length === 0 && <p className="text-center text-gray-400 py-10">Carrito vacío</p>}
+                        {cart.length === 0 && <p className="text-center text-gray-400 py-10">El carrito está vacío</p>}
                         {cart.map((item, i) => (
                             <div key={i} className="flex justify-between items-center p-2 bg-white rounded shadow-sm">
                                 <span className="text-sm font-medium truncate w-1/3">{item.name}</span>
@@ -681,7 +898,7 @@ const HardwareView = ({ technicians, showMessage }) => {
                         ))}
                     </div>
 
-                    <Button onClick={processCart} variant={mode === 'in' ? 'success' : 'primary'} disabled={cart.length === 0} className="w-full py-4 text-lg">
+                    <Button onClick={processCart} variant={mode === 'in' ? 'success' : 'primary'} disabled={cart.length === 0} className="w-full py-4 text-lg shadow-md">
                         Confirmar {mode === 'in' ? 'Ingreso' : 'Retiro'} ({cart.length} items)
                     </Button>
                 </Card>
@@ -840,83 +1057,132 @@ const AntenasView = ({ technicians, showMessage }) => {
     );
 };
 
-// --- DASHBOARD SIMPLIFICADO CON ALERTA Y BUSCADOR ---
+// --- DASHBOARD DIVIDIDO (2 BODEGAS) ---
 const DashboardView = ({ products }) => {
     const [searchTerm, setSearchTerm] = useState('');
+
+    // ✅ CORRECCIÓN: Usamos useCallback para que esta función sea estable
+    const getSortedProducts = React.useCallback((list) => {
+        return list
+            .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+            .sort((a, b) => {
+                // 1. Críticos primero
+                const aCrit = a.stock <= a.crit;
+                const bCrit = b.stock <= b.crit;
+                if (aCrit && !bCrit) return -1;
+                if (!aCrit && bCrit) return 1;
+
+                // 2. Bajos segundo
+                const aLow = a.stock <= a.min;
+                const bLow = b.stock <= b.min;
+                if (aLow && !bLow) return -1;
+                if (!aLow && bLow) return 1;
+
+                // 3. Alfabético final
+                return a.name.localeCompare(b.name);
+            });
+    }, [searchTerm]); // La función solo cambia si cambia el searchTerm
+
+    const principalProducts = useMemo(() => {
+        // Filtramos primero por bodega, luego aplicamos el ordenamiento
+        const filtered = products.filter(p => (!p.warehouse || p.warehouse === 'principal'));
+        return getSortedProducts(filtered);
+    }, [products, getSortedProducts]); // ✅ Dependencias correctas
+
+    const storageProducts = useMemo(() => {
+        const filtered = products.filter(p => p.warehouse === 'almacenamiento');
+        return getSortedProducts(filtered);
+    }, [products, getSortedProducts]); // ✅ Dependencias correctas
 
     const inventoryHealth = useMemo(() => {
         let critical = 0;
         products.forEach(p => { if (p.stock <= p.crit) critical++; });
-        return [{ value: critical }];
+        return critical;
     }, [products]);
 
-    const filteredProducts = useMemo(() => {
-        if (!searchTerm) return products;
-        return products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [products, searchTerm]);
+    // Componente interno para tabla de stock
+    const StockTable = ({ items, title, colorTheme }) => (
+        <Card className={`h-full border-t-4 ${colorTheme}`}>
+            <h3 className="font-bold text-gray-700 mb-3 text-lg flex justify-between items-center">
+                {title} <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-500">{items.length} items</span>
+            </h3>
+            <div className="overflow-x-auto max-h-[calc(100vh-300px)] custom-scrollbar"> 
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                        <tr className="border-b">
+                            <th className="p-3">Producto</th>
+                            <th className="p-3 text-center">Stock</th>
+                            <th className="p-3 text-center">Est.</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                        {items.map(p => { 
+                            let statusColor = "bg-green-100 text-green-800";
+                            let statusLabel = "OK";
+                            if (p.stock <= p.crit) { statusColor = "bg-red-100 text-red-800"; statusLabel = "Crit"; }
+                            else if (p.stock <= p.min) { statusColor = "bg-yellow-100 text-yellow-800"; statusLabel = "Bajo"; }
+                            
+                            return (
+                                <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="p-2">
+                                        <div className="font-medium text-gray-800">{p.name}</div>
+                                        <div className="text-[10px] text-gray-400 font-mono">{p.sku}</div>
+                                    </td>
+                                    <td className="p-2 text-center font-bold text-base">{p.stock}</td>
+                                    <td className="p-2 text-center">
+                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${statusColor}`}>{statusLabel}</span>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        {items.length === 0 && <tr><td colSpan="3" className="text-center py-10 text-gray-400">Sin stock</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        </Card>
+    );
 
     return (
         <div className="space-y-6">
-            {/* ALERTA ROJA */}
-            {inventoryHealth[0].value > 0 && (
+            {/* ALERTA ROJA GLOBAL */}
+            {inventoryHealth > 0 && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm flex items-center justify-between animate-pulse">
                     <div className="flex items-center gap-3">
                         <AlertTriangle className="text-red-600 w-6 h-6" />
                         <div>
-                            <p className="font-bold text-red-800 text-lg">¡Atención! {inventoryHealth[0].value} productos en nivel crítico</p>
-                            <p className="text-red-600 text-sm">Se requiere reabastecimiento inmediato.</p>
+                            <p className="font-bold text-red-800 text-lg">¡Atención! {inventoryHealth} productos en nivel crítico</p>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* TABLA / LISTADO */}
-            <Card>
-                <div className="flex flex-col md:flex-row justify-between mb-4 items-center gap-4">
-                    <h2 className="font-bold text-gray-700">Listado General de Bodega</h2>
-                    <div className="relative w-full md:w-64">
-                        <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4"/>
-                        <input 
-                            className="w-full pl-9 p-2 border rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500" 
-                            placeholder="Buscar producto..." 
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <div className="overflow-x-auto max-h-[calc(100vh-250px)]"> 
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
-                            <tr className="border-b">
-                                <th className="p-3">Producto</th>
-                                <th className="p-3 text-center">Stock</th>
-                                <th className="p-3 text-center">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {filteredProducts.map(p => { 
-                                let statusColor = "bg-green-100 text-green-800";
-                                let statusLabel = "OK";
-                                if (p.stock <= p.crit) { statusColor = "bg-red-100 text-red-800"; statusLabel = "Crítico"; }
-                                else if (p.stock <= p.min) { statusColor = "bg-yellow-100 text-yellow-800"; statusLabel = "Bajo"; }
-                                
-                                return (
-                                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-3">
-                                            <div className="font-medium text-gray-800">{p.name}</div>
-                                            <div className="text-xs text-gray-400 font-mono">{p.sku}</div>
-                                        </td>
-                                        <td className="p-3 text-center font-bold text-base">{p.stock}</td>
-                                        <td className="p-3 text-center">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusColor}`}>{statusLabel}</span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+            {/* BUSCADOR GLOBAL */}
+            <div className="relative w-full max-w-md mx-auto mb-6">
+                <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5"/>
+                <input 
+                    className="w-full pl-10 p-3 border rounded-full shadow-sm outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Buscar en ambas bodegas..." 
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+            {/* VISTA DIVIDIDA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* IZQUIERDA: PRINCIPAL */}
+                <StockTable 
+                    items={principalProducts} 
+                    title="🏭 Bodega Principal" 
+                    colorTheme="border-blue-500"
+                />
+
+                {/* DERECHA: ALMACENAMIENTO */}
+                <StockTable 
+                    items={storageProducts} 
+                    title="📦 Bodega Almacenamiento (Huesera)" 
+                    colorTheme="border-purple-500"
+                />
+            </div>
         </div>
     );
 };
@@ -1000,7 +1266,7 @@ export default function App() {
         if (type === 'in' || type === 'return') newStock += item.qty;
         else if (type === 'out') newStock -= item.qty;
         await updateDoc(productRef, { stock: newStock });
-        await addDoc(collection(db, "transactions"), { productId: item.id, productName: item.name, type, qty: item.qty, technician: (type === 'out' || type === 'return') ? technician : 'Bodega', invoiceRef: type === 'in' ? invoiceNumber : '', date: new Date().toISOString() });
+        await addDoc(collection(db, "transactions"), { productId: item.id, productName: item.name, type, qty: item.qty, technician: (type === 'out' || type === 'return') ? technician : 'Bodega', invoiceRef: type === 'in' ? invoiceNumber : '', date: new Date().toISOString(), warehouse: item.warehouse || 'principal' });
       });
       await Promise.all(batchPromises);
       setCart([]); setTechnician(''); setInvoiceNumber(''); setInvoiceFileBase64(null); setInvoiceFileName(''); showMessage(type === 'return' ? "✅ Material devuelto correctamente" : "✅ Transacción exitosa");
@@ -1026,7 +1292,15 @@ export default function App() {
       {!isRestricted && (
         <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 md:flex md:flex-col`}>
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-700 w-full mb-4">
-            <div className="flex items-center"><Database className="w-8 h-8 text-blue-400" /><span className="ml-3 font-bold text-xl">Bodega</span></div>
+            {/* LOGO EN SIDEBAR */}
+            <div className="flex items-center justify-center w-full bg-white rounded p-1">
+                <img 
+                    src="/logo-telconor.png" 
+                    alt="Telconor" 
+                    className="h-10 object-contain" 
+                    onError={(e) => {e.target.src=''; e.target.parentElement.innerHTML='<span class="font-bold text-blue-600">BODEGA</span>'}}
+                />
+            </div>
             <button onClick={() => setIsMenuOpen(false)} className="md:hidden text-gray-400 hover:text-white"><X className="w-6 h-6"/></button>
           </div>
           <nav className="flex-1 flex flex-col w-full px-2 space-y-2 overflow-y-auto">
